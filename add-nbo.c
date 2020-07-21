@@ -1,46 +1,56 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <netinet/in.h>
+
+uint32_t file_read_nbo(const char *filename)
+{
+    FILE *f;
+    uint32_t num;
+
+    /* file open */
+    f = fopen(filename, "rb");
+
+    /* check whether the file opened or not */
+    if (f == NULL) {
+        fprintf(stderr, "Error : cannot open '%s'\n", filename);
+        exit(1);
+    }
+
+    /* read integer as network byte order */
+    size_t elem_count = fread(&num, 1, sizeof(uint32_t), f);
+
+    /* check whether the file is 4 or not */
+    if (elem_count != 4) {
+        fprintf(stderr, "Error : file '%s' is not 4 bytes size.\n", filename);
+        fclose(f);
+        exit(1);
+    }
+
+    /* file close and return */
+    fclose(f);
+
+    return num;
+}
+
 
 int main(int argc, char *argv[])
 {
-	FILE *f1, *f2;
-	uint32_t a, b;
-	uint32_t ha, hb, hc;
+    uint32_t ha, hb, hc;
 
-	/* it needs 3 arguments */
-	if (argc != 3) {
-		printf("syntax : %s <file1> <file2>\n", argv[0]);
-		return 0;
-	}
+    /* it needs 3 arguments */
+    if (argc != 3) {
+        printf("Syntax : %s <file1> <file2>\n", argv[0]);
+        return 0;
+    }
 
-	/* first file open */
-	f1 = fopen(argv[1], "rb");
+    /* read integer and convert nbo to hbo */
+    ha = ntohl(file_read_nbo(argv[1]));
+    hb = ntohl(file_read_nbo(argv[2]));
 
-	if (f1 == NULL) {
-		fprintf(stderr, "error : cannot open %s\n", argv[1]);
-		return 1;
-	}
+    /* add as hbo and print */
+    hc = ha + hb;
 
-	/* second file open */
-	f2 = fopen(argv[2], "rb");
-
-	if (f2 == NULL) {
-		fprintf(stderr, "error : cannot open %s\n", argv[2]);
-		return 1;
-	}
-
-
-	/* read integer as network byte order */
-	fread(&a, sizeof(uint32_t), 1, f1);
-	fread(&b, sizeof(uint32_t), 1, f2);
-
-	/* convert nbo to hbo */
-	ha = ntohl(a);
-	hb = ntohl(b);
-
-	/* add as hbo and print */
-	hc = ha + hb;
-
-	printf("%u(0x%x) + %u(0x%x) = %u(0x%x)\n", ha, ha, hb, hb, hc, hc);
+    /* print result */
+    printf("%u(0x%x) + %u(0x%x) = %u(0x%x)\n", ha, ha, hb, hb, hc, hc);
 }
